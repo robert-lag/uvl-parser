@@ -1,0 +1,18 @@
+features
+    A
+        mandatory
+            B
+                or
+                    C
+                    D
+            E
+                alternative
+                    F
+                    G
+
+constraints
+    E => G
+    A <=> B
+
+visibility-constraints
+    F vif C
