@@ -26,6 +26,7 @@ public class FeatureModel {
     private Feature rootFeature;
     private final Map<String, Feature> featureMap = new HashMap<>();
     private final List<Constraint> ownConstraints = new LinkedList<>();
+    private final List<Constraint> ownVisibilityConstraints = new LinkedList<>();
     private boolean explicitLanguageLevels = false;
 
     /*
@@ -165,6 +166,17 @@ public class FeatureModel {
     }
 
     /**
+     * A list with all the visibility constraints of this featuremodel. This does not contain
+     * the constraints of the imported sub feature models or constraints in feature
+     * attribtues.
+     *
+     * @return A list of the constraints of this featuremodel.
+     */
+    public List<Constraint> getOwnVisibilityConstraints() {
+        return ownVisibilityConstraints;
+    }
+
+    /**
      * A list with all the constraints of that are part of feature attributes of
      * features in this featuremodel. This does not contain the constraints of the
      * imported features of sub feature models.
@@ -196,6 +208,37 @@ public class FeatureModel {
     }
 
     /**
+     * A list with all the constraints of that are part of feature attributes of
+     * features in this featuremodel. This does not contain the constraints of the
+     * imported features of sub feature models.
+     *
+     * @return A list of the constraints of featureattributes in this featuremodel.
+     */
+    public List<Constraint> getFeatureVisibilityConstraints() {
+        return getFeatureVisibilityConstraints(getRootFeature());
+    }
+
+    private List<Constraint> getFeatureVisibilityConstraints(Feature feature) {
+        List<Constraint> featureVisConstraints = new LinkedList<>();
+        Attribute<Constraint> featureVisConstraint = feature.getAttributes().get("visibility-constraint");
+        Attribute<List<Constraint>> featureVisConstraintList = feature.getAttributes().get("visibility-constraints");
+        if (featureVisConstraint != null) {
+            featureVisConstraints.add(featureVisConstraint.getValue());
+        }
+        if (featureVisConstraintList != null) {
+            featureVisConstraints.addAll(featureVisConstraintList.getValue());
+        }
+        for (Group childGroup : feature.getChildren()) {
+            for (Feature childFeature : childGroup.getFeatures()) {
+                if (!childFeature.isSubmodelRoot()) {
+                    featureVisConstraints.addAll(getFeatureVisibilityConstraints(childFeature));
+                }
+            }
+        }
+        return featureVisConstraints;
+    }
+
+    /**
      * A list will all constraints of this featuremodel and recursively of all its
      * imported sub feature models (that are used). This inclues constraints in
      * feature attributes. This list is not stored but gets calculated with every
@@ -214,6 +257,22 @@ public class FeatureModel {
         for (Import importLine : imports) {
             if (importLine.isReferenced()) {
                 constraints.addAll(importLine.getFeatureModel().getConstraints());
+            }
+        }
+        return constraints;
+    }
+
+    /**
+     * A list with all visibility constraints of this featuremodel an recirsively of all its
+     * imported sub feature models (that are used). 
+     * @return a list with all visibility constraints of this feature model
+     */
+    public List<Constraint> getVisibilityConstraints() {
+        List<Constraint> constraints = new LinkedList<Constraint>();
+        constraints.addAll(ownVisibilityConstraints);
+        for (Import importLine : imports) {
+            if (importLine.isReferenced()) {
+                constraints.addAll(importLine.getFeatureModel().getVisibilityConstraints());
             }
         }
         return constraints;
@@ -368,6 +427,29 @@ public class FeatureModel {
             }
         }
 
+        List<Constraint> visibilityConstraintList;
+        if (withSubmodels) {
+            visibilityConstraintList = new LinkedList<>();
+            visibilityConstraintList.addAll(ownVisibilityConstraints);
+            for (Import importLine : imports) {
+                // only print the constraints of a submodel if the import is actually used
+                if (importLine.isReferenced()) {
+                    visibilityConstraintList.addAll(importLine.getFeatureModel().getOwnVisibilityConstraints());
+                }
+            }
+        } else {
+            visibilityConstraintList = getOwnVisibilityConstraints();
+        }
+        if (visibilityConstraintList.size() > 0) {
+            result.append("visibility-constraints");
+            result.append(Configuration.getNewlineSymbol());
+            for (Constraint constraint : visibilityConstraintList) {
+                result.append(Configuration.getTabulatorSymbol());
+                result.append(constraint.toString(withSubmodels, currentAlias));
+                result.append(Configuration.getNewlineSymbol());
+            }
+        }
+
         return result.toString();
     }
 
@@ -457,6 +539,17 @@ public class FeatureModel {
         List<Constraint> objConstraints = ((FeatureModel) obj).getOwnConstraints();
         for (final Constraint constraint : this.getOwnConstraints()) {
             if (!objConstraints.contains(constraint)) {
+                return false;
+            }
+        }
+
+        if (this.getOwnVisibilityConstraints().size() != ((FeatureModel) obj).getOwnVisibilityConstraints().size()) {
+            return false;
+        }
+
+        List<Constraint> objVisibilityConstraints = ((FeatureModel) obj).getOwnVisibilityConstraints();
+        for (final Constraint constraint : this.getOwnVisibilityConstraints()) {
+            if (!objVisibilityConstraints.contains(constraint)) {
                 return false;
             }
         }

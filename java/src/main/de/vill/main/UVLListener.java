@@ -25,6 +25,7 @@ import de.vill.model.constraint.NotConstraint;
 import de.vill.model.constraint.NotEqualsEquationConstraint;
 import de.vill.model.constraint.OrConstraint;
 import de.vill.model.constraint.ParenthesisConstraint;
+import de.vill.model.constraint.VisibleIfConstraint;
 import de.vill.model.expression.AddExpression;
 import de.vill.model.expression.AggregateFunctionExpression;
 import de.vill.model.expression.AvgAggregateFunctionExpression;
@@ -57,6 +58,8 @@ public class UVLListener extends UVLJavaBaseListener {
     private Stack<Group> groupStack = new Stack<>();
 
     private Stack<Constraint> constraintStack = new Stack<>();
+
+    private Stack<Constraint> visibilityConstraintStack = new Stack<>();
 
     private Stack<Expression> expressionStack = new Stack<>();
 
@@ -443,6 +446,64 @@ public class UVLListener extends UVLJavaBaseListener {
         Constraint rightConstraint = constraintStack.pop();
         Constraint leftConstraint = constraintStack.pop();
         Constraint constraint = new EquivalenceConstraint(leftConstraint, rightConstraint);
+        constraintStack.push(constraint);
+        Token t = ctx.getStart();
+        int line = t.getLine();
+        constraint.setLineNumber(line);
+    }
+
+	@Override
+    public void exitSingleVisibilityConstraintAttribute(UVLJavaParser.SingleVisibilityConstraintAttributeContext ctx) {
+        Attribute<String> attribute = new Attribute("visibility-constraint", visibilityConstraintStack.pop());
+        attributeStack.peek().put("visibility-constraint", attribute);
+    }
+
+	@Override
+    public void exitListVisibilityConstraintAttribute(UVLJavaParser.ListVisibilityConstraintAttributeContext ctx) {
+        List<Constraint> constraintList = new LinkedList<>();
+        while (!visibilityConstraintStack.empty()) {
+            constraintList.add(visibilityConstraintStack.pop());
+        }
+        Attribute<String> attribute = new Attribute("visibility-constraints", constraintList);
+        attributeStack.peek().put("visibility-constraints", attribute);
+    }
+
+	@Override
+    public void exitVisibilityConstraints(UVLJavaParser.VisibilityConstraintsContext ctx) {
+        while (!visibilityConstraintStack.isEmpty()) {
+            featureModel.getOwnVisibilityConstraints().add(0, visibilityConstraintStack.pop());
+        }
+    }
+
+	@Override
+    public void exitVisibleIfConstraint(UVLJavaParser.VisibleIfConstraintContext ctx) {
+        Constraint rightConstraint = constraintStack.pop();
+        Constraint leftConstraint = constraintStack.pop();
+        Constraint constraint = new VisibleIfConstraint(leftConstraint, rightConstraint);
+        visibilityConstraintStack.push(constraint);
+        Token t = ctx.getStart();
+        int line = t.getLine();
+        constraint.setLineNumber(line);
+    }
+
+	@Override
+    public void exitVisibilityConstraintReference(UVLJavaParser.VisibilityConstraintReferenceContext ctx) {
+        String featureReference = ctx.reference().getText().replace("\"", "");
+
+        LiteralConstraint constraint = new LiteralConstraint(featureReference);
+
+        if (featureReference.contains(".")) {
+            int lastDotIndex = featureReference.lastIndexOf(".");
+            String subModelName = featureReference.substring(0, lastDotIndex);
+            String featureName = featureReference.substring(lastDotIndex + 1, featureReference.length());
+            for (Import importLine : featureModel.getImports()) {
+                if (importLine.getAlias().equals(subModelName)) {
+                    constraint.setRelatedImport(importLine);
+                    break;
+                }
+            }
+        }
+        featureModel.getLiteralConstraints().add(constraint);
         constraintStack.push(constraint);
         Token t = ctx.getStart();
         int line = t.getLine();

@@ -4,7 +4,7 @@ grammar UVLBase;
 INDENT : '<INDENT>'; // this pattern should never match in actual input
 DEDENT : '<DEDENT>'; // this pattern should also never match
 
-featureModel: namespace? NEWLINE? includes? NEWLINE? imports? NEWLINE? features? NEWLINE? constraints? EOF;
+featureModel: namespace? NEWLINE? includes? NEWLINE? imports? NEWLINE? features? NEWLINE? constraints? NEWLINE? visibilityConstraints? NEWLINE* EOF;
 
 includes: 'include' NEWLINE INDENT includeLine* DEDENT;
 includeLine: languageLevel NEWLINE;
@@ -34,7 +34,8 @@ attributes: OPEN_BRACE (attribute (COMMA attribute)*)? CLOSE_BRACE;
 
 attribute
     : valueAttribute
-    | constraintAttribute;
+    | constraintAttribute
+    | visibilityConstraintAttribute;
 
 valueAttribute: key value?;
 
@@ -62,6 +63,22 @@ constraint
     | constraint IMPLICATION constraint     # ImplicationConstraint
     | constraint EQUIVALENCE constraint     # EquivalenceConstraint
 	;
+
+visibilityConstraintAttribute
+    : 'visibility-constraint' visibilityConstraint               # SingleVisibilityConstraintAttribute
+    | 'visibility-constraints' visibilityConstraintList          # ListVisibilityConstraintAttribute
+    ;
+visibilityConstraintList: OPEN_BRACK (visibilityConstraint (COMMA visibilityConstraint)*)? CLOSE_BRACK;
+
+visibilityConstraints: 'visibility-constraints' NEWLINE INDENT visibilityConstraintLine* DEDENT;
+
+visibilityConstraintLine: visibilityConstraint NEWLINE;
+
+visibilityConstraint
+    : visibilityConstraintReference VISIBILE_IF constraint      # VisibleIfConstraint
+    ;
+
+visibilityConstraintReference: reference;
 
 equation
     : expression EQUAL expression           # EqualEquation
@@ -129,6 +146,7 @@ LOWER_EQUALS: '<=';
 GREATER: '>';
 GREATER_EQUALS: '>=';
 NOT_EQUALS: '!=';
+VISIBILE_IF: 'vif';
 
 DIV: '/';
 MUL: '*';
@@ -161,3 +179,5 @@ SKIP_
   fragment SPACES
    : [ \t]+
    ;
+
+// vi: ft=antlr
