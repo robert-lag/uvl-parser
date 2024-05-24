@@ -2,6 +2,7 @@ package de.vill.model;
 
 import de.vill.config.Configuration;
 import de.vill.model.constraint.Constraint;
+import de.vill.model.constraint.ImplicationConstraint;
 import de.vill.model.constraint.LiteralConstraint;
 import de.vill.model.expression.AggregateFunctionExpression;
 import de.vill.model.expression.LiteralExpression;
@@ -263,8 +264,8 @@ public class FeatureModel {
     }
 
     /**
-     * A list with all visibility constraints of this featuremodel an recirsively of all its
-     * imported sub feature models (that are used). 
+     * A list with all visibility constraints of this featuremodel an recursively of all its
+     * imported sub feature models (that are used).
      * @return a list with all visibility constraints of this feature model
      */
     public List<Constraint> getVisibilityConstraints() {
@@ -441,11 +442,19 @@ public class FeatureModel {
             visibilityConstraintList = getOwnVisibilityConstraints();
         }
         if (visibilityConstraintList.size() > 0) {
+            result.append(Configuration.getNewlineSymbol());
             result.append("visibility-constraints");
             result.append(Configuration.getNewlineSymbol());
             for (Constraint constraint : visibilityConstraintList) {
                 result.append(Configuration.getTabulatorSymbol());
-                result.append(constraint.toString(withSubmodels, currentAlias));
+                if (constraint instanceof ImplicationConstraint) {
+                    result.append(((ImplicationConstraint) constraint).getLeft().toString(withSubmodels, currentAlias));
+                    result.append(" vif ");
+                    result.append(((ImplicationConstraint) constraint).getRight().toString(withSubmodels, currentAlias));
+                } else {
+                    // This branch should never be executed, as the top-level visibility constraint is always an implication
+                    result.append(constraint.toString(withSubmodels, currentAlias));
+                }
                 result.append(Configuration.getNewlineSymbol());
             }
         }
