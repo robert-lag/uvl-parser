@@ -9,6 +9,7 @@ import de.vill.model.expression.LiteralExpression;
 import de.vill.util.Util;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static de.vill.util.Util.addNecessaryQuotes;
 
@@ -240,7 +241,19 @@ public class FeatureModel {
     }
 
     /**
-     * A list will all constraints of this featuremodel and recursively of all its
+     * Returns a list that's a concatenation of getConstraints()
+     * and getVisibilityConstraints().
+     *
+     * @return a list with all constraints and visibility constraints of this
+     * feature model.
+     */
+    public List<Constraint> getAllConstraints() {
+        return Stream.concat(getConstraints().stream(), getVisibilityConstraints().stream())
+					 .toList();
+    }
+
+    /**
+     * A list with all constraints of this featuremodel and recursively of all its
      * imported sub feature models (that are used). This inclues constraints in
      * feature attributes. This list is not stored but gets calculated with every
      * call. This means changing a constraint will have an effect to the feature
