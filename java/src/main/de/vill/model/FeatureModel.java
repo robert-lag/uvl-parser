@@ -284,6 +284,7 @@ public class FeatureModel {
     public List<Constraint> getVisibilityConstraints() {
         List<Constraint> constraints = new LinkedList<Constraint>();
         constraints.addAll(ownVisibilityConstraints);
+        constraints.addAll(getFeatureVisibilityConstraints());
         for (Import importLine : imports) {
             if (importLine.isReferenced()) {
                 constraints.addAll(importLine.getFeatureModel().getVisibilityConstraints());
