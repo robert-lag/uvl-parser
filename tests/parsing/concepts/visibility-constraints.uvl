@@ -1,18 +1,14 @@
 features
     A
-        mandatory
+        or
             B
-                or
-                    C
-                    D
+            C
+            D
             E
-                alternative
-                    F
-                    G
 
 constraints
-    E => G
-    A <=> B
+    A => B
 
 visibility-constraints
-    F vif C
+    A vif B
+    B vif C | D | E
