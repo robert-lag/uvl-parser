@@ -1,0 +1,19 @@
+features
+    A {Name 'General', Package {Name 'Package A', ID '1234'}}
+        or
+            B {Price '5', visibility-constraint B vif F | G}
+            C {Price '10'}
+            D {Price '7'}
+            E {Price '3'}
+        alternative
+            F {Big}
+            G {Medium}
+            H {Small, constraint H => !C, visibility-constraint H vif !C}
+
+constraints
+    F => C
+    C => D & E
+
+visibility-constraints
+    F vif C
+    C vif D & E
