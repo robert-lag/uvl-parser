@@ -1,7 +1,7 @@
 features
     A
         or
-            B
+            B {visibility-constraint B vif C | D | E}
             C
             D
             E
@@ -9,6 +9,3 @@ features
 constraints
     A => B
 
-visibility-constraints
-    A vif B
-    B vif C | D | E
